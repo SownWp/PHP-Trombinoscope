@@ -1,3 +1,25 @@
+<?php
+require_once 'config.php';
+
+try {
+    // On demande à la base de données de lister toutes ses tables
+    $query = $pdo->query("SHOW TABLES");
+    $tables = $query->fetchAll(PDO::FETCH_COLUMN);
+
+    if (empty($tables)) {
+        echo "La connexion est OK, mais aucune table n'a été trouvée dans 'defaultdb'.";
+    } else {
+        echo "✅ Connexion réussie ! Voici les tables trouvées sur Aiven :<br>";
+        foreach ($tables as $table) {
+            echo "- $table <br>";
+        }
+    }
+} catch (PDOException $e) {
+    die("❌ Erreur de connexion : " . $e->getMessage());
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
