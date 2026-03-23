@@ -12,8 +12,6 @@ function loadEnv($path) {
 
 loadEnv(__DIR__ . '/.env');
 
-require_once 'env_loader.php';
-
 $host = $_ENV['DB_HOST'];
 $db   = $_ENV['DB_NAME'];
 $user = $_ENV['DB_USER'];
