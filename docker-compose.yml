@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    container_name: trombinoscope-app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./ca.pem:/var/www/html/ca.pem:ro
+    env_file: .env
+    networks:
+      - trombinoscope_net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: trombinoscope-phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: ${DB_HOST}
+      PMA_PORT: ${DB_PORT}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
+    env_file: .env
+    volumes:
+      - ./ca.pem:/tmp/ca.pem:ro
+      - ./docker/phpmyadmin-config.inc.php:/etc/phpmyadmin/config.user.inc.php:ro
+    networks:
+      - trombinoscope_net
+
+networks:
+  trombinoscope_net:
+    driver: bridge
