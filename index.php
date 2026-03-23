@@ -1,22 +1,7 @@
 <?php
 require_once 'config.php';
 
-try {
-    // On demande à la base de données de lister toutes ses tables
-    $query = $pdo->query("SHOW TABLES");
-    $tables = $query->fetchAll(PDO::FETCH_COLUMN);
 
-    if (empty($tables)) {
-        echo "La connexion est OK, mais aucune table n'a été trouvée dans 'defaultdb'.";
-    } else {
-        echo "✅ Connexion réussie ! Voici les tables trouvées sur Aiven :<br>";
-        foreach ($tables as $table) {
-            echo "- $table <br>";
-        }
-    }
-} catch (PDOException $e) {
-    die("❌ Erreur de connexion : " . $e->getMessage());
-}
 
 ?>
 
@@ -32,16 +17,16 @@ try {
 <body>
 
   <nav>
-    <a href="index.html" class="nav-logo">trombi<span>.</span></a>
+    <a href="index.php" class="nav-logo">trombi<span>.</span></a>
     <button class="nav-toggle" aria-label="Ouvrir le menu">
-      <span></span>
+      <span></span>i
       <span></span>
       <span></span>
     </button>
     <ul class="nav-links">
-      <li><a href="index.html">Accueil</a></li>
-      <li><a href="register.html">Inscription</a></li>
-      <li><a href="login.html" class="btn-nav">Connexion</a></li>
+      <li><a href="index.php">Accueil</a></li>
+      <li><a href="register.php">Inscription</a></li>
+      <li><a href="login.php" class="btn-nav">Connexion</a></li>
     </ul>
   </nav>
 
@@ -50,7 +35,7 @@ try {
     <div class="hero">
       <h1>Le trombinoscope<br>de <em>votre promo <u>B1</u></em></h1>
       <p>Retrouvez tous vos camarades, partagez vos publications et échangez des commentaires.</p>
-      <a href="register.html" class="btn btn-primary btn-inline">Rejoindre la promo</a>
+      <a href="register.php" class="btn btn-primary btn-inline">Rejoindre la promo</a>
     </div>
 
     <div class="flash flash-success">
@@ -67,8 +52,8 @@ try {
     <div class="trombi-grid">
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Alice&backgroundColor=b6e3f4" alt="Alice Martin">
+        <a href="profil.php">
+          <img class="card-img" src="./img/wp15865200.webp" alt="Alice Martin">
           <div class="card-body">
             <div class="card-name">Alice Martin</div>
             <div class="card-role">Développeuse Web</div>
@@ -78,8 +63,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Lucas&backgroundColor=ffdfbf" alt="Lucas Bernard">
+        <a href="profil.php">
+          <img class="card-img" src="./img/illustration-tigre-portant-lunettes-soleil-veste-jaune_95549-8236.webp" alt="Lucas Bernard">
           <div class="card-body">
             <div class="card-name">Lucas Bernard</div>
             <div class="card-role">Designer UI</div>
@@ -89,8 +74,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Sofia&backgroundColor=d1f4d1" alt="Sofia Dupont">
+        <a href="profil.php">
+          <img class="card-img" src="./img/Tralalero_Tralalala.webp" alt="Sofia Dupont">
           <div class="card-body">
             <div class="card-name">Sofia Dupont</div>
             <div class="card-role">Data Analyst</div>
@@ -100,8 +85,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Karim&backgroundColor=ffd5dc" alt="Karim Ndiaye">
+        <a href="profil.php">
+          <img class="card-img" src="./img/pork-john-image.webp" alt="Karim Ndiaye">
           <div class="card-body">
             <div class="card-name">Karim Ndiaye</div>
             <div class="card-role">DevOps</div>
@@ -111,8 +96,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Emma&backgroundColor=e8d5ff" alt="Emma Leroy">
+        <a href="profil.php">
+          <img class="card-img" src="./img/81fd16bc-2edf-4add-b221-ffdc1bd93bea-1761943332015-thumbnailM.webp" alt="Emma Leroy">
           <div class="card-body">
             <div class="card-name">Emma Leroy</div>
             <div class="card-role">Product Manager</div>
@@ -122,8 +107,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Noah&backgroundColor=fff3b0" alt="Noah Girard">
+        <a href="profil.php">
+          <img class="card-img" src="./img/washington-charlie-kirk-is-seen-in-the-fiserv-forum-on-the-third-night-of-the-republican.webp" alt="Noah Girard">
           <div class="card-body">
             <div class="card-name">Noah Girard</div>
             <div class="card-role">Sécurité Réseau</div>
@@ -133,8 +118,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Yasmine&backgroundColor=c0f0f0" alt="Yasmine Benali">
+        <a href="profil.php">
+          <img class="card-img" src="./img/oI7peF3IEIdIA7fcO8fzK8xAj51TSDoWDBMQCN~tplv-tiktokx-origin (1).webp" alt="Yasmine Benali">
           <div class="card-body">
             <div class="card-name">Yasmine Benali</div>
             <div class="card-role">Développeuse Mobile</div>
@@ -144,8 +129,8 @@ try {
       </div>
 
       <div class="trombi-card card">
-        <a href="profil.html">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Tom&backgroundColor=ffd5b0" alt="Tom Faure">
+        <a href="profil.php">
+          <img class="card-img" src="./img/Tralalero_Tralalala.webp" alt="Tom Faure">
           <div class="card-body">
             <div class="card-name">Tom Faure</div>
             <div class="card-role">Administrateur Sys.</div>
