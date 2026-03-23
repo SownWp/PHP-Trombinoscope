@@ -31,7 +31,7 @@ $utilisateurs = $query->fetchAll(PDO::FETCH_ASSOC);
   <nav>
     <a href="index.php" class="nav-logo">trombi<span>.</span></a>
     <button class="nav-toggle" aria-label="Ouvrir le menu">
-      <span></span>
+      <span></span>i
       <span></span>
       <span></span>
     </button>
