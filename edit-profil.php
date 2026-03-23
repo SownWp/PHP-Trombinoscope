@@ -2,45 +2,38 @@
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
 
+$flash = $_SESSION['flash'] ?? null;
+$flashError = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash'], $_SESSION['flash_error']);
+
 $stmt = $pdo->prepare('SELECT * FROM utilisateurs WHERE id = :id LIMIT 1');
 $stmt->execute(['id' => $_SESSION['user_id']]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    session_destroy();
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 
-$flash = $_SESSION['flash'] ?? null;
-$flashError = $_SESSION['flash_error'] ?? null;
-unset($_SESSION['flash'], $_SESSION['flash_error']);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $userId = (int) ($_POST['user_id'] ?? 0);
+
+    if ($userId !== (int) $_SESSION['user_id']) {
+        $_SESSION['flash_error'] = 'Action non autorisée.';
+        header('Location: index.php');
+        exit;
+    }
+
     $prenom = trim($_POST['prenom'] ?? '');
     $nom = trim($_POST['nom'] ?? '');
     $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $promo = trim($_POST['promo'] ?? '');
     $specialite = trim($_POST['specialite'] ?? '');
+    $promo = trim($_POST['promo'] ?? '');
     $bio = trim($_POST['bio'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($prenom === '' || $nom === '' || $email === '' || $promo === '') {
+    if ($prenom === '' || $nom === '' || $email === '') {
         $_SESSION['flash_error'] = 'Veuillez remplir tous les champs obligatoires.';
-        header('Location: edit-profil.php');
-        exit;
-    }
-
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['flash_error'] = 'Adresse email invalide.';
-        header('Location: edit-profil.php');
-        exit;
-    }
-
-    $checkEmail = $pdo->prepare('SELECT id FROM utilisateurs WHERE email = :email AND id != :id LIMIT 1');
-    $checkEmail->execute(['email' => $email, 'id' => $user['id']]);
-    if ($checkEmail->fetch()) {
-        $_SESSION['flash_error'] = 'Cette adresse email est déjà utilisée par un autre compte.';
         header('Location: edit-profil.php');
         exit;
     }
@@ -56,67 +49,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: edit-profil.php');
             exit;
         }
-
         if ($_FILES['avatar']['size'] > $maxSize) {
             $_SESSION['flash_error'] = 'Le fichier est trop volumineux (2 Mo maximum).';
             header('Location: edit-profil.php');
             exit;
         }
-
         $extension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-        $newAvatar = uniqid() . '.' . $extension;
-
-        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], __DIR__ . '/uploads/' . $newAvatar)) {
+        $avatar = uniqid() . '.' . $extension;
+        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], __DIR__ . '/uploads/' . $avatar)) {
             $_SESSION['flash_error'] = 'Erreur lors de l\'upload de la photo.';
             header('Location: edit-profil.php');
             exit;
         }
-
-        if ($avatar && $avatar !== 'default.svg') {
-            $oldPath = __DIR__ . '/uploads/' . $avatar;
-            if (file_exists($oldPath)) {
-                unlink($oldPath);
-            }
-        }
-        $avatar = $newAvatar;
     }
 
-    try {
-        $sql = 'UPDATE utilisateurs SET prenom = :prenom, nom = :nom, email = :email,
-                specialite = :specialite, promo = :promo, bio = :bio, avatar = :avatar';
-        $params = [
-            'prenom' => $prenom,
-            'nom' => $nom,
-            'email' => $email,
-            'specialite' => $specialite !== '' ? $specialite : null,
-            'promo' => $promo,
-            'bio' => $bio !== '' ? $bio : null,
-            'avatar' => $avatar,
-            'id' => $user['id'],
-        ];
+    $fields = [
+        'prenom' => $prenom,
+        'nom' => $nom,
+        'email' => $email,
+        'specialite' => $specialite !== '' ? $specialite : null,
+        'promo' => $promo,
+        'bio' => $bio !== '' ? $bio : null,
+        'avatar' => $avatar,
+    ];
 
-        if ($password !== '') {
-            $sql .= ', password = :password';
-            $params['password'] = password_hash($password, PASSWORD_DEFAULT);
-        }
-
-        $sql .= ' WHERE id = :id';
-
-        $update = $pdo->prepare($sql);
-        $update->execute($params);
-
-        $_SESSION['flash'] = 'Profil mis à jour avec succès.';
-        header('Location: profil.php');
-        exit;
-    } catch (PDOException $e) {
-        $_SESSION['flash_error'] = 'Une erreur est survenue lors de la mise à jour.';
-        header('Location: edit-profil.php');
-        exit;
+    if ($password !== '') {
+        $fields['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
+
+    $setParts = [];
+    $params = [];
+    foreach ($fields as $key => $value) {
+        $setParts[] = "$key = :$key";
+        $params[$key] = $value;
+    }
+    $params['id'] = $_SESSION['user_id'];
+
+    $sql = 'UPDATE utilisateurs SET ' . implode(', ', $setParts) . ' WHERE id = :id';
+    $pdo->prepare($sql)->execute($params);
+
+    $_SESSION['user_prenom'] = $prenom;
+
+    $_SESSION['flash'] = 'Profil modifié avec succès.';
+    header('Location: profil.php?id=' . $_SESSION['user_id']);
+    exit;
 }
-
-$avatarSrc = './uploads/' . htmlspecialchars($user['avatar'] ?? 'default.svg', ENT_QUOTES, 'UTF-8');
-$promos = ['BUT1 2024', 'BUT2 2023', 'BUT3 2022'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -138,7 +115,7 @@ $promos = ['BUT1 2024', 'BUT2 2023', 'BUT3 2022'];
     </button>
     <ul class="nav-links">
       <li><a href="index.php">Accueil</a></li>
-      <li><a href="profil.php">Mon profil</a></li>
+      <li><a href="profil.php?id=<?= $_SESSION['user_id'] ?>">Mon profil</a></li>
       <li><a href="logout.php">Déconnexion</a></li>
     </ul>
   </nav>
@@ -159,20 +136,17 @@ $promos = ['BUT1 2024', 'BUT2 2023', 'BUT3 2022'];
 
     <div class="form-card">
       <div class="form-title">Modifier mon profil</div>
-      <div class="form-subtitle">Ces informations sont visibles par tous les membres.</div>
+      <div class="form-subtitle">Mettez à jour vos informations personnelles.</div>
 
-      <form action="" method="POST" enctype="multipart/form-data">
+      <form action="edit-profil.php" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
 
         <div class="avatar-upload">
-          <img
-            src="<?= $avatarSrc ?>"
-            alt="Avatar actuel"
-            id="preview-avatar"
-          >
+          <img src="uploads/<?= htmlspecialchars($user['avatar']) ?>" alt="Avatar actuel" id="preview-avatar">
           <div>
-            <label for="avatar">Changer la photo</label>
+            <label for="avatar">Photo de profil</label>
             <input type="file" id="avatar" name="avatar" accept="image/*">
-            <p class="form-hint">Laissez vide pour conserver la photo actuelle.</p>
+            <p class="form-hint">JPG, PNG, WebP ou AVIF, 2 Mo maximum.</p>
           </div>
         </div>
 
@@ -180,52 +154,50 @@ $promos = ['BUT1 2024', 'BUT2 2023', 'BUT3 2022'];
 
         <div class="form-group">
           <label for="prenom">Prénom</label>
-          <input type="text" id="prenom" name="prenom" value="<?= htmlspecialchars($user['prenom'], ENT_QUOTES, 'UTF-8') ?>" required>
+          <input type="text" id="prenom" name="prenom" value="<?= htmlspecialchars($user['prenom']) ?>" required>
         </div>
 
         <div class="form-group">
           <label for="nom">Nom</label>
-          <input type="text" id="nom" name="nom" value="<?= htmlspecialchars($user['nom'], ENT_QUOTES, 'UTF-8') ?>" required>
+          <input type="text" id="nom" name="nom" value="<?= htmlspecialchars($user['nom']) ?>" required>
         </div>
-
-        <div class="form-group">
-          <label for="specialite">Spécialité</label>
-          <input type="text" id="specialite" name="specialite" value="<?= htmlspecialchars($user['specialite'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-        </div>
-
-        <div class="form-group">
-          <label for="promo">Promotion</label>
-          <select id="promo" name="promo">
-            <?php foreach ($promos as $p): ?>
-              <option value="<?= $p ?>" <?= $user['promo'] === $p ? 'selected' : '' ?>><?= $p ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="bio">Bio</label>
-          <textarea id="bio" name="bio"><?= htmlspecialchars($user['bio'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-        </div>
-
-        <hr class="divider">
 
         <div class="form-group">
           <label for="email">Adresse email</label>
-          <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8') ?>" required>
+          <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['email']) ?>" required>
         </div>
 
         <div class="form-group">
           <label for="password">Nouveau mot de passe</label>
-          <input type="password" id="password" name="password" placeholder="Laissez vide pour ne pas changer">
-          <p class="form-hint">Renseignez seulement si vous souhaitez le modifier.</p>
+          <input type="password" id="password" name="password" placeholder="Laisser vide pour ne pas changer">
+          <p class="form-hint">Au moins 8 caractères. Laisser vide pour conserver le mot de passe actuel.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="promo">Promotion</label>
+          <select id="promo" name="promo" required>
+            <option value="">Choisissez votre promotion</option>
+            <option value="BUT1 2024" <?= $user['promo'] === 'BUT1 2024' ? 'selected' : '' ?>>BUT1 2024</option>
+            <option value="BUT2 2023" <?= $user['promo'] === 'BUT2 2023' ? 'selected' : '' ?>>BUT2 2023</option>
+            <option value="BUT3 2022" <?= $user['promo'] === 'BUT3 2022' ? 'selected' : '' ?>>BUT3 2022</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="specialite">Spécialité</label>
+          <input type="text" id="specialite" name="specialite" value="<?= htmlspecialchars($user['specialite'] ?? '') ?>">
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Courte bio</label>
+          <textarea id="bio" name="bio"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
         </div>
 
         <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-
       </form>
 
       <div class="form-footer">
-        <a href="profil.php">Annuler et retourner au profil</a>
+        <a href="profil.php?id=<?= $_SESSION['user_id'] ?>">Annuler</a>
       </div>
     </div>
   </div>

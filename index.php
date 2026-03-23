@@ -7,7 +7,6 @@ if ($promoFilter) {
   $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar, created_at FROM utilisateurs WHERE promo = :promo";
   $query = $pdo->prepare($sql);
   $query->execute(['promo' => $promoFilter]);
-  print($utilisateurs);
 } else {
   $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs";
   $query = $pdo->query($sql);

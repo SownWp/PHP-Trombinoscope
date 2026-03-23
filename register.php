@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $avatar = 'default.svg';
     $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-    $maxSize = 2097152; // 2 Mo
+    $maxSize = 2097152;
 
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $mime = mime_content_type($_FILES['avatar']['tmp_name']);

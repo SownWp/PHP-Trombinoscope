@@ -28,7 +28,7 @@ document.querySelectorAll('[data-confirm]').forEach(function (el) {
   el.addEventListener('click', function (e) {
     e.preventDefault();
     if (!confirm(el.dataset.confirm)) return;
-    /* En PHP : window.location.href = el.href; */
+    window.location.href = el.href;
   });
 });
 
