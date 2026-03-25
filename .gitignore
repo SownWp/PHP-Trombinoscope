@@ -1,2 +1,7 @@
 ca.pem
 .env
+.DS_Store
+Dockerfile
+docker-compose.yml
+.dockerignore
+docker/
