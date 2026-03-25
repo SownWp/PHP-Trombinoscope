@@ -1,18 +1,37 @@
 <?php
 require_once 'config.php';
+require_once __DIR__ . '/cloudinary.php';
 
 $promoFilter = $_GET['promo'] ?? null;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
 
 if ($promoFilter) {
-  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar, created_at FROM utilisateurs WHERE promo = :promo";
+  $countSql = "SELECT COUNT(*) FROM utilisateurs WHERE promo = :promo";
+  $countStmt = $pdo->prepare($countSql);
+  $countStmt->execute(['promo' => $promoFilter]);
+  $totalUsers = (int) $countStmt->fetchColumn();
+
+  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar, created_at FROM utilisateurs WHERE promo = :promo LIMIT :limit OFFSET :offset";
   $query = $pdo->prepare($sql);
-  $query->execute(['promo' => $promoFilter]);
+  $query->bindValue('promo', $promoFilter);
+  $query->bindValue('limit', $perPage, PDO::PARAM_INT);
+  $query->bindValue('offset', $offset, PDO::PARAM_INT);
+  $query->execute();
 } else {
-  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs";
-  $query = $pdo->query($sql);
+  $countSql = "SELECT COUNT(*) FROM utilisateurs";
+  $totalUsers = (int) $pdo->query($countSql)->fetchColumn();
+
+  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs LIMIT :limit OFFSET :offset";
+  $query = $pdo->prepare($sql);
+  $query->bindValue('limit', $perPage, PDO::PARAM_INT);
+  $query->bindValue('offset', $offset, PDO::PARAM_INT);
+  $query->execute();
 }
 
 $utilisateurs = $query->fetchAll(PDO::FETCH_ASSOC);
+$totalPages = max(1, (int) ceil($totalUsers / $perPage));
 
 ?>
 
@@ -30,7 +49,7 @@ $utilisateurs = $query->fetchAll(PDO::FETCH_ASSOC);
   <nav>
     <a href="index.php" class="nav-logo">trombi<span>.</span></a>
     <button class="nav-toggle" aria-label="Ouvrir le menu">
-      <span></span>i
+      <span></span>
       <span></span>
       <span></span>
     </button>
@@ -67,7 +86,7 @@ $utilisateurs = $query->fetchAll(PDO::FETCH_ASSOC);
         <?php foreach ($utilisateurs as $user): ?>
           <div class="trombi-card card">
             <a href="profil.php?id=<?= $user['id'] ?>">
-              <img class="card-img" src="./assets/img/<?= htmlspecialchars($user['avatar']) ?>" alt="<?= htmlspecialchars($user['prenom']) ?>">
+              <img class="card-img" src="<?= htmlspecialchars(avatarUrl($user['avatar'])) ?>" alt="<?= htmlspecialchars($user['prenom']) ?>">
               <div class="card-body">
                 <div class="card-name"><?= htmlspecialchars($user['prenom'] . ' ' . $user['nom']) ?></div>
                 <div class="card-role"><?= htmlspecialchars($user['specialite'] ?? 'Étudiant') ?></div>
@@ -77,85 +96,27 @@ $utilisateurs = $query->fetchAll(PDO::FETCH_ASSOC);
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Lucas&backgroundColor=ffdfbf" alt="Lucas Bernard">
-          <div class="card-body">
-            <div class="card-name">Lucas Bernard</div>
-            <div class="card-role">Designer UI</div>
-            <span class="card-promo">BUT1 2024</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Sofia&backgroundColor=d1f4d1" alt="Sofia Dupont">
-          <div class="card-body">
-            <div class="card-name">Sofia Dupont</div>
-            <div class="card-role">Data Analyst</div>
-            <span class="card-promo">BUT2 2023</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Karim&backgroundColor=ffd5dc" alt="Karim Ndiaye">
-          <div class="card-body">
-            <div class="card-name">Karim Ndiaye</div>
-            <div class="card-role">DevOps</div>
-            <span class="card-promo">BUT2 2023</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Emma&backgroundColor=e8d5ff" alt="Emma Leroy">
-          <div class="card-body">
-            <div class="card-name">Emma Leroy</div>
-            <div class="card-role">Product Manager</div>
-            <span class="card-promo">BUT3 2022</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Noah&backgroundColor=fff3b0" alt="Noah Girard">
-          <div class="card-body">
-            <div class="card-name">Noah Girard</div>
-            <div class="card-role">Sécurité Réseau</div>
-            <span class="card-promo">BUT3 2022</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="trombi-card card">
-        <a href="profil.php">
-          <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Yasmine&backgroundColor=c0f0f0" alt="Yasmine Benali">
-          <div class="card-body">
-            <div class="card-name">Yasmine Benali</div>
-            <div class="card-role">Développeuse Mobile</div>
-            <span class="card-promo">BUT1 2024</span>
-          </div>
-        </a>
-      </div>
-
-        <div class="trombi-card card">
-          <a href="profil.php">
-            <img class="card-img" src="https://api.dicebear.com/7.x/personas/svg?seed=Tom&backgroundColor=ffd5b0" alt="Tom Faure">
-            <div class="card-body">
-              <div class="card-name">Tom Faure</div>
-              <div class="card-role">Administrateur Sys.</div>
-              <span class="card-promo">BUT2 2023</span>
-            </div>
-          </a>
-        </div>
-      </div>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+      <div class="pagination">
+        <?php
+          $queryParams = $promoFilter ? ['promo' => $promoFilter] : [];
+        ?>
+        <?php if ($page > 1): ?>
+          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $page - 1])) ?>" class="pagination-link">&laquo; Précédent</a>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $i])) ?>" class="pagination-link <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($page < $totalPages): ?>
+          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $page + 1])) ?>" class="pagination-link">Suivant &raquo;</a>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
   </div>
 
   <footer>

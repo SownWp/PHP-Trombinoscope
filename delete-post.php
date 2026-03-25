@@ -1,8 +1,15 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/csrf.php';
 
-$postId = (int) ($_GET['id'] ?? 0);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken()) {
+    $_SESSION['flash_error'] = 'Requête invalide.';
+    header('Location: index.php');
+    exit;
+}
+
+$postId = (int) ($_POST['post_id'] ?? 0);
 if (!$postId) {
     header('Location: index.php');
     exit;

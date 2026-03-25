@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
@@ -9,33 +10,37 @@ unset($_SESSION['flash'], $_SESSION['flash_error']);
 $emailValue = $_COOKIE['remember_email'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $remember = isset($_POST['remember']);
-
-    if ($email === '' || $password === '') {
-        $flashError = 'Veuillez remplir tous les champs.';
-        $emailValue = $email;
+    if (!verifyCsrfToken()) {
+        $flashError = 'Token de sécurité invalide. Veuillez réessayer.';
     } else {
-        $stmt = $pdo->prepare('SELECT * FROM utilisateurs WHERE email = :email LIMIT 1');
-        $stmt->execute(['email' => $email]);
-        $user = $stmt->fetch();
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $remember = isset($_POST['remember']);
 
-        if (!$user || !password_verify($password, $user['password'])) {
-            $flashError = 'Email ou mot de passe incorrect.';
+        if ($email === '' || $password === '') {
+            $flashError = 'Veuillez remplir tous les champs.';
             $emailValue = $email;
         } else {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_prenom'] = $user['prenom'];
+            $stmt = $pdo->prepare('SELECT * FROM utilisateurs WHERE email = :email LIMIT 1');
+            $stmt->execute(['email' => $email]);
+            $user = $stmt->fetch();
 
-            if ($remember) {
-                setcookie('remember_email', $email, time() + (30 * 24 * 3600), '/');
+            if (!$user || !password_verify($password, $user['password'])) {
+                $flashError = 'Email ou mot de passe incorrect.';
+                $emailValue = $email;
             } else {
-                setcookie('remember_email', '', time() - 3600, '/');
-            }
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_prenom'] = $user['prenom'];
 
-            header('Location: index.php');
-            exit;
+                if ($remember) {
+                    setcookie('remember_email', $email, time() + (30 * 24 * 3600), '/');
+                } else {
+                    setcookie('remember_email', '', time() - 3600, '/');
+                }
+
+                header('Location: index.php');
+                exit;
+            }
         }
     }
 }
@@ -83,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-subtitle">Bon retour parmi nous.</div>
 
       <form action="" method="POST">
+        <?= csrfField() ?>
 
         <div class="form-group">
           <label for="email">Adresse email</label>

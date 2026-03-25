@@ -1,6 +1,13 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/csrf.php';
+
+if (!verifyCsrfToken()) {
+    $_SESSION['flash_error'] = 'Token de sécurité invalide.';
+    header('Location: profil.php?id=' . $_SESSION['user_id']);
+    exit;
+}
 
 $contenu = trim($_POST['contenu'] ?? '');
 

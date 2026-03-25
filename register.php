@@ -1,12 +1,20 @@
 <?php
 session_start();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cloudinary.php';
+require_once __DIR__ . '/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash'], $_SESSION['flash_error']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken()) {
+        $_SESSION['flash_error'] = 'Token de sécurité invalide. Veuillez réessayer.';
+        header('Location: register.php');
+        exit;
+    }
+
     $prenom = trim($_POST['prenom'] ?? '');
     $nom = trim($_POST['nom'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -45,14 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $extension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-        $avatar = uniqid() . '.' . $extension;
-
-        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], __DIR__ . '/uploads/' . $avatar)) {
+        $cloudinaryUrl = uploadToCloudinary($_FILES['avatar']['tmp_name']);
+        if (!$cloudinaryUrl) {
             $_SESSION['flash_error'] = 'Erreur lors de l\'upload de la photo.';
             header('Location: register.php');
             exit;
         }
+        $avatar = $cloudinaryUrl;
     }
 
     try {
@@ -137,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-subtitle">Rejoignez le trombinoscope de votre promotion.</div>
 
       <form action="" method="POST" enctype="multipart/form-data">
+        <?= csrfField() ?>
 
         <div class="avatar-upload">
           <img src="https://api.dicebear.com/7.x/personas/svg?seed=default&backgroundColor=e2ddd6" alt="Avatar par défaut" id="preview-avatar">

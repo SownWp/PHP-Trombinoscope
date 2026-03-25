@@ -26,9 +26,9 @@ document.querySelectorAll('.flash').forEach(function (flash) {
 /* --- Delete confirmation --- */
 document.querySelectorAll('[data-confirm]').forEach(function (el) {
   el.addEventListener('click', function (e) {
-    e.preventDefault();
-    if (!confirm(el.dataset.confirm)) return;
-    window.location.href = el.href;
+    if (!confirm(el.dataset.confirm)) {
+      e.preventDefault();
+    }
   });
 });
 

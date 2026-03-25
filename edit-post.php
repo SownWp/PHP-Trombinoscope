@@ -1,8 +1,15 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/csrf.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken()) {
+        $_SESSION['flash_error'] = 'Token de sécurité invalide.';
+        header('Location: index.php');
+        exit;
+    }
+
     $postId = (int) ($_POST['post_id'] ?? 0);
     $contenu = trim($_POST['contenu'] ?? '');
 
@@ -78,6 +85,7 @@ if (!$post || (int) $post['utilisateur_id'] !== (int) $_SESSION['user_id']) {
       <div class="form-subtitle">Apportez vos corrections puis enregistrez.</div>
 
       <form action="edit-post.php" method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="post_id" value="<?= $post['id'] ?>">
 
         <div class="form-group">

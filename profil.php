@@ -1,6 +1,8 @@
 <?php
 session_start();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cloudinary.php';
+require_once __DIR__ . '/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
@@ -99,7 +101,7 @@ if (!empty($publications)) {
     <div class="profile-header">
       <img
         class="profile-avatar"
-        src="uploads/<?= htmlspecialchars($profil['avatar']) ?>"
+        src="<?= htmlspecialchars(avatarUrl($profil['avatar'])) ?>"
         alt="<?= htmlspecialchars($profil['prenom'] . ' ' . $profil['nom']) ?>"
       >
       <div class="profile-info">
@@ -122,6 +124,7 @@ if (!empty($publications)) {
     <?php if ($isOwner): ?>
       <div class="form-card form-card-post">
         <form action="post.php" method="POST">
+          <?= csrfField() ?>
           <div class="form-group">
             <textarea name="contenu" placeholder="Partagez quelque chose avec la promo..." rows="3"></textarea>
           </div>
@@ -152,7 +155,11 @@ if (!empty($publications)) {
           <?php if ($isLoggedIn && (int) $_SESSION['user_id'] === (int) $pub['utilisateur_id']): ?>
             <div class="post-actions">
               <a href="edit-post.php?id=<?= $pub['id'] ?>" class="btn btn-secondary btn-sm">Modifier</a>
-              <a href="delete-post.php?id=<?= $pub['id'] ?>" class="btn btn-danger btn-sm" data-confirm="Supprimer cette publication ?">Supprimer</a>
+              <form action="delete-post.php" method="POST" style="display:inline;">
+                <input type="hidden" name="post_id" value="<?= $pub['id'] ?>">
+                <?= csrfField() ?>
+                <button type="submit" class="btn btn-danger btn-sm" data-confirm="Supprimer cette publication ?">Supprimer</button>
+              </form>
             </div>
           <?php endif; ?>
 
@@ -169,6 +176,7 @@ if (!empty($publications)) {
 
           <?php if ($isLoggedIn): ?>
             <form action="comment.php" method="POST" class="comment-form">
+              <?= csrfField() ?>
               <input type="hidden" name="post_id" value="<?= $pub['id'] ?>">
               <input type="text" name="contenu" placeholder="Ajouter un commentaire...">
               <button type="submit">Envoyer</button>

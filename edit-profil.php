@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cloudinary.php';
+require_once __DIR__ . '/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
@@ -16,6 +18,12 @@ if (!$user) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken()) {
+        $_SESSION['flash_error'] = 'Token de sécurité invalide.';
+        header('Location: edit-profil.php');
+        exit;
+    }
+
     $userId = (int) ($_POST['user_id'] ?? 0);
 
     if ($userId !== (int) $_SESSION['user_id']) {
@@ -54,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: edit-profil.php');
             exit;
         }
-        $extension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-        $avatar = uniqid() . '.' . $extension;
-        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], __DIR__ . '/uploads/' . $avatar)) {
+        $cloudinaryUrl = uploadToCloudinary($_FILES['avatar']['tmp_name']);
+        if (!$cloudinaryUrl) {
             $_SESSION['flash_error'] = 'Erreur lors de l\'upload de la photo.';
             header('Location: edit-profil.php');
             exit;
         }
+        $avatar = $cloudinaryUrl;
     }
 
     $fields = [
@@ -139,10 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-subtitle">Mettez à jour vos informations personnelles.</div>
 
       <form action="edit-profil.php" method="POST" enctype="multipart/form-data">
+        <?= csrfField() ?>
         <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
 
         <div class="avatar-upload">
-          <img src="uploads/<?= htmlspecialchars($user['avatar']) ?>" alt="Avatar actuel" id="preview-avatar">
+          <img src="<?= htmlspecialchars(avatarUrl($user['avatar'])) ?>" alt="Avatar actuel" id="preview-avatar">
           <div>
             <label for="avatar">Photo de profil</label>
             <input type="file" id="avatar" name="avatar" accept="image/*">
