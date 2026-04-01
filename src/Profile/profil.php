@@ -1,8 +1,8 @@
 <?php
 session_start();
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/cloudinary.php';
-require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/cloudinary.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
@@ -10,7 +10,7 @@ unset($_SESSION['flash'], $_SESSION['flash_error']);
 
 $profilId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if (!$profilId) {
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
@@ -19,12 +19,13 @@ $stmt->execute(['id' => $profilId]);
 $profil = $stmt->fetch();
 
 if (!$profil) {
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $isOwner = $isLoggedIn && (int) $_SESSION['user_id'] === (int) $profil['id'];
+$isAdmin = ($isLoggedIn && ($_SESSION['user_role'] ?? '') === 'admin');
 
 $stmtPubs = $pdo->prepare(
     'SELECT p.id, p.contenu, p.created_at, p.utilisateur_id, u.prenom, u.nom
@@ -37,6 +38,8 @@ $stmtPubs->execute(['uid' => $profilId]);
 $publications = $stmtPubs->fetchAll();
 
 $commentaires = [];
+$likesCount = [];
+$userLikes = [];
 if (!empty($publications)) {
     $pubIds = array_column($publications, 'id');
     $placeholders = implode(',', array_fill(0, count($pubIds), '?'));
@@ -49,7 +52,36 @@ if (!empty($publications)) {
          ORDER BY c.created_at ASC"
     );
     $stmtCom->execute($pubIds);
-    foreach ($stmtCom->fetchAll() as $com) {
+    $allComments = $stmtCom->fetchAll();
+
+    $comIds = array_column($allComments, 'id');
+    if (!empty($comIds)) {
+        $comPlaceholders = implode(',', array_fill(0, count($comIds), '?'));
+        $stmtLikes = $pdo->prepare(
+            "SELECT commentaire_id, COUNT(*) AS total
+             FROM likes_commentaires
+             WHERE commentaire_id IN ($comPlaceholders)
+             GROUP BY commentaire_id"
+        );
+        $stmtLikes->execute($comIds);
+        foreach ($stmtLikes->fetchAll() as $row) {
+            $likesCount[$row['commentaire_id']] = (int) $row['total'];
+        }
+
+        if ($isLoggedIn) {
+            $stmtUserLikes = $pdo->prepare(
+                "SELECT commentaire_id
+                 FROM likes_commentaires
+                 WHERE commentaire_id IN ($comPlaceholders) AND utilisateur_id = ?"
+            );
+            $stmtUserLikes->execute(array_merge($comIds, [$_SESSION['user_id']]));
+            foreach ($stmtUserLikes->fetchAll() as $row) {
+                $userLikes[$row['commentaire_id']] = true;
+            }
+        }
+    }
+
+    foreach ($allComments as $com) {
         $commentaires[$com['publication_id']][] = $com;
     }
 }
@@ -60,26 +92,29 @@ if (!empty($publications)) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trombinoscope — <?= htmlspecialchars($profil['prenom'] . ' ' . $profil['nom']) ?></title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <script src="./assets/js/script.js" defer></script>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/script.js" defer></script>
 </head>
 <body>
 
   <nav>
-    <a href="index.php" class="nav-logo">trombi<span>.</span></a>
+    <a href="../../public/index.php" class="nav-logo">trombi<span>.</span></a>
     <button class="nav-toggle" aria-label="Ouvrir le menu">
       <span></span>
       <span></span>
       <span></span>
     </button>
     <ul class="nav-links">
-      <li><a href="index.php">Accueil</a></li>
+      <li><a href="../../public/index.php">Accueil</a></li>
       <?php if ($isLoggedIn): ?>
+        <?php if ($isAdmin): ?>
+          <li><a href="../Admin/dashboard.php">Admin</a></li>
+        <?php endif; ?>
         <li><a href="profil.php?id=<?= $_SESSION['user_id'] ?>">Mon profil</a></li>
-        <li><a href="logout.php">Déconnexion</a></li>
+        <li><a href="../Auth/logout.php">Déconnexion</a></li>
       <?php else: ?>
-        <li><a href="register.php">Inscription</a></li>
-        <li><a href="login.php" class="btn-nav">Connexion</a></li>
+        <li><a href="../Auth/register.php">Inscription</a></li>
+        <li><a href="../Auth/login.php" class="btn-nav">Connexion</a></li>
       <?php endif; ?>
     </ul>
   </nav>
@@ -114,7 +149,7 @@ if (!empty($publications)) {
       <?php if ($isOwner): ?>
         <div class="profile-actions">
           <a href="edit-profil.php" class="btn btn-secondary btn-sm">Modifier le profil</a>
-          <a href="logout.php" class="btn btn-danger btn-sm">Déconnexion</a>
+          <a href="../Auth/logout.php" class="btn btn-danger btn-sm">Déconnexion</a>
         </div>
       <?php endif; ?>
     </div>
@@ -123,7 +158,7 @@ if (!empty($publications)) {
 
     <?php if ($isOwner): ?>
       <div class="form-card form-card-post">
-        <form action="post.php" method="POST">
+        <form action="../Posts/post.php" method="POST">
           <?= csrfField() ?>
           <div class="form-group">
             <textarea name="contenu" placeholder="Partagez quelque chose avec la promo..." rows="3"></textarea>
@@ -154,8 +189,8 @@ if (!empty($publications)) {
 
           <?php if ($isLoggedIn && (int) $_SESSION['user_id'] === (int) $pub['utilisateur_id']): ?>
             <div class="post-actions">
-              <a href="edit-post.php?id=<?= $pub['id'] ?>" class="btn btn-secondary btn-sm">Modifier</a>
-              <form action="delete-post.php" method="POST" style="display:inline;">
+              <a href="../Posts/edit-post.php?id=<?= $pub['id'] ?>" class="btn btn-secondary btn-sm">Modifier</a>
+              <form action="../Posts/delete-post.php" method="POST" style="display:inline;">
                 <input type="hidden" name="post_id" value="<?= $pub['id'] ?>">
                 <?= csrfField() ?>
                 <button type="submit" class="btn btn-danger btn-sm" data-confirm="Supprimer cette publication ?">Supprimer</button>
@@ -168,14 +203,32 @@ if (!empty($publications)) {
               <div class="comment">
                 <div class="comment-author">
                   <a href="profil.php?id=<?= $com['utilisateur_id'] ?>"><?= htmlspecialchars($com['prenom'] . ' ' . $com['nom']) ?></a>
+                  <span class="comment-date"><?= date('d/m/Y à H:i', strtotime($com['created_at'])) ?></span>
                 </div>
                 <div class="comment-text"><?= htmlspecialchars($com['contenu']) ?></div>
+                <div class="comment-footer">
+                  <?php if ($isLoggedIn): ?>
+                    <button
+                      class="like-btn <?= isset($userLikes[$com['id']]) ? 'liked' : '' ?>"
+                      data-comment-id="<?= $com['id'] ?>"
+                      type="button"
+                    >
+                      <svg class="like-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      <span class="like-count"><?= $likesCount[$com['id']] ?? 0 ?></span>
+                    </button>
+                  <?php else: ?>
+                    <span class="like-btn like-btn-static">
+                      <svg class="like-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      <span class="like-count"><?= $likesCount[$com['id']] ?? 0 ?></span>
+                    </span>
+                  <?php endif; ?>
+                </div>
               </div>
             <?php endforeach; ?>
           </div>
 
           <?php if ($isLoggedIn): ?>
-            <form action="comment.php" method="POST" class="comment-form">
+            <form action="../Posts/comment.php" method="POST" class="comment-form">
               <?= csrfField() ?>
               <input type="hidden" name="post_id" value="<?= $pub['id'] ?>">
               <input type="text" name="contenu" placeholder="Ajouter un commentaire...">

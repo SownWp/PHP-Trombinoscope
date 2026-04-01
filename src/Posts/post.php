@@ -1,11 +1,11 @@
 <?php
-require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!verifyCsrfToken()) {
     $_SESSION['flash_error'] = 'Token de sécurité invalide.';
-    header('Location: profil.php?id=' . $_SESSION['user_id']);
+    header('Location: ../Profile/profil.php?id=' . $_SESSION['user_id']);
     exit;
 }
 
@@ -13,7 +13,7 @@ $contenu = trim($_POST['contenu'] ?? '');
 
 if ($contenu === '') {
     $_SESSION['flash_error'] = 'Le contenu de la publication ne peut pas être vide.';
-    header('Location: profil.php?id=' . $_SESSION['user_id']);
+    header('Location: ../Profile/profil.php?id=' . $_SESSION['user_id']);
     exit;
 }
 
@@ -24,5 +24,5 @@ $stmt->execute([
 ]);
 
 $_SESSION['flash'] = 'Publication ajoutée avec succès.';
-header('Location: profil.php?id=' . $_SESSION['user_id']);
+header('Location: ../Profile/profil.php?id=' . $_SESSION['user_id']);
 exit;

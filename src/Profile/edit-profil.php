@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/cloudinary.php';
-require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/cloudinary.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 $flash = $_SESSION['flash'] ?? null;
 $flashError = $_SESSION['flash_error'] ?? null;
@@ -13,7 +13,7 @@ $stmt->execute(['id' => $_SESSION['user_id']]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($userId !== (int) $_SESSION['user_id']) {
         $_SESSION['flash_error'] = 'Action non autorisée.';
-        header('Location: index.php');
+        header('Location: ../../public/index.php');
         exit;
     }
 
@@ -109,22 +109,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trombinoscope — Modifier mon profil</title>
-  <link rel="stylesheet" href="./assets/css/style.css">
-  <script src="./assets/js/script.js" defer></script>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <script src="../../assets/js/script.js" defer></script>
 </head>
 <body>
 
   <nav>
-    <a href="index.php" class="nav-logo">trombi<span>.</span></a>
+    <a href="../../public/index.php" class="nav-logo">trombi<span>.</span></a>
     <button class="nav-toggle" aria-label="Ouvrir le menu">
       <span></span>
       <span></span>
       <span></span>
     </button>
     <ul class="nav-links">
-      <li><a href="index.php">Accueil</a></li>
+      <li><a href="../../public/index.php">Accueil</a></li>
+      <?php if (($_SESSION['user_role'] ?? '') === 'admin'): ?>
+        <li><a href="../Admin/dashboard.php">Admin</a></li>
+      <?php endif; ?>
       <li><a href="profil.php?id=<?= $_SESSION['user_id'] ?>">Mon profil</a></li>
-      <li><a href="logout.php">Déconnexion</a></li>
+      <li><a href="../Auth/logout.php">Déconnexion</a></li>
     </ul>
   </nav>
 

@@ -1,11 +1,11 @@
 <?php
-require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
 if (!verifyCsrfToken()) {
     $_SESSION['flash_error'] = 'Token de sécurité invalide.';
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
@@ -13,7 +13,7 @@ $postId = (int) ($_POST['post_id'] ?? 0);
 $contenu = trim($_POST['contenu'] ?? '');
 
 if (!$postId || $contenu === '') {
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
@@ -22,7 +22,7 @@ $stmt->execute(['id' => $postId]);
 $pub = $stmt->fetch();
 
 if (!$pub) {
-    header('Location: index.php');
+    header('Location: ../../public/index.php');
     exit;
 }
 
@@ -33,5 +33,5 @@ $insert->execute([
     'contenu' => $contenu,
 ]);
 
-header('Location: profil.php?id=' . $pub['utilisateur_id']);
+header('Location: ../Profile/profil.php?id=' . $pub['utilisateur_id']);
 exit;

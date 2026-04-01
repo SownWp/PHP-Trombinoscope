@@ -1,7 +1,22 @@
-ca.pem
+# Environnement et secrets
 .env
-.DS_Store
+ca.pem
+
+# Docker
 Dockerfile
 docker-compose.yml
 .dockerignore
 docker/
+
+# Systeme
+.DS_Store
+Thumbs.db
+
+# Sujet / docs de cours
+SUJET.pdf
+
+# Uploads utilisateurs (garder le default)
+uploads/*
+!uploads/default.svg
+assets/uploads/
+assets/images/
