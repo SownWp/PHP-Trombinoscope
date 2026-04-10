@@ -7,30 +7,24 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $isAdmin = ($isLoggedIn && ($_SESSION['user_role'] ?? '') === 'admin');
 
 $promoFilter = $_GET['promo'] ?? null;
-$page = max(1, (int) ($_GET['page'] ?? 1));
+
+
 $perPage = 10;
-$offset = ($page - 1) * $perPage;
 
 if ($promoFilter) {
-  $countSql = "SELECT COUNT(*) FROM utilisateurs WHERE promo = :promo";
-  $countStmt = $pdo->prepare($countSql);
+  $countStmt = $pdo->prepare("SELECT COUNT(*) FROM utilisateurs WHERE promo = :promo");
   $countStmt->execute(['promo' => $promoFilter]);
   $totalUsers = (int) $countStmt->fetchColumn();
 
-  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar, created_at FROM utilisateurs WHERE promo = :promo LIMIT :limit OFFSET :offset";
-  $query = $pdo->prepare($sql);
+  $query = $pdo->prepare("SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs WHERE promo = :promo LIMIT :limit");
   $query->bindValue('promo', $promoFilter);
   $query->bindValue('limit', $perPage, PDO::PARAM_INT);
-  $query->bindValue('offset', $offset, PDO::PARAM_INT);
   $query->execute();
 } else {
-  $countSql = "SELECT COUNT(*) FROM utilisateurs";
-  $totalUsers = (int) $pdo->query($countSql)->fetchColumn();
+  $totalUsers = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs")->fetchColumn();
 
-  $sql = "SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs LIMIT :limit OFFSET :offset";
-  $query = $pdo->prepare($sql);
+  $query = $pdo->prepare("SELECT id, prenom, nom, specialite, promo, bio, avatar FROM utilisateurs LIMIT :limit");
   $query->bindValue('limit', $perPage, PDO::PARAM_INT);
-  $query->bindValue('offset', $offset, PDO::PARAM_INT);
   $query->execute();
 }
 
@@ -91,7 +85,10 @@ $totalPages = max(1, (int) ceil($totalUsers / $perPage));
       <a href="index.php?promo=BUT3 2022" class="filter-btn <?= $promoFilter == 'BUT3 2022' ? 'active' : '' ?>">BUT3 2022</a>
     </div>
 
-    <div class="trombi-grid">
+    <div class="trombi-grid" id="trombi-grid"
+         data-page="1"
+         data-has-more="<?= $totalPages > 1 ? '1' : '0' ?>"
+         data-promo="<?= htmlspecialchars($promoFilter ?? '') ?>">
       <?php if (empty($utilisateurs)): ?>
         <p>Aucun membre trouvé pour le moment.</p>
       <?php else: ?>
@@ -110,24 +107,9 @@ $totalPages = max(1, (int) ceil($totalUsers / $perPage));
       <?php endif; ?>
     </div>
 
-    <?php if ($totalPages > 1): ?>
-      <div class="pagination">
-        <?php
-          $queryParams = $promoFilter ? ['promo' => $promoFilter] : [];
-        ?>
-        <?php if ($page > 1): ?>
-          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $page - 1])) ?>" class="pagination-link">&laquo; Précédent</a>
-        <?php endif; ?>
-
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $i])) ?>" class="pagination-link <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
-        <?php endfor; ?>
-
-        <?php if ($page < $totalPages): ?>
-          <a href="index.php?<?= http_build_query(array_merge($queryParams, ['page' => $page + 1])) ?>" class="pagination-link">Suivant &raquo;</a>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+    <div id="scroll-loader" class="scroll-loader" style="display:none;">
+      <div class="spinner"></div>
+    </div>
 
   </div>
 

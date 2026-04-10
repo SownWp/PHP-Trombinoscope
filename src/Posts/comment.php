@@ -17,6 +17,7 @@ if (!$postId || $contenu === '') {
     exit;
 }
 
+
 $stmt = $pdo->prepare('SELECT utilisateur_id FROM publications WHERE id = :id LIMIT 1');
 $stmt->execute(['id' => $postId]);
 $pub = $stmt->fetch();
@@ -35,3 +36,4 @@ $insert->execute([
 
 header('Location: ../Profile/profil.php?id=' . $pub['utilisateur_id']);
 exit;
+           

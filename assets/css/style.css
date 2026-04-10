@@ -815,45 +815,26 @@ footer {
   }
 }
 
-/* --- Pagination --- */
+/* --- Scroll loader --- */
 
-.pagination {
+.scroll-loader {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 0.4rem;
-  margin: 2rem 0 1rem;
-  flex-wrap: wrap;
+  padding: 2rem 0;
 }
 
-.pagination-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.25rem;
-  height: 2.25rem;
-  padding: 0 0.65rem;
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  color: var(--text);
-  background: var(--card);
-  border: 1px solid var(--border);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
-.pagination-link:hover {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-}
-
-.pagination-link.active {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  pointer-events: none;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 480px) {
@@ -1158,6 +1139,59 @@ footer {
 
 .stat-card-warning .stat-number {
   color: #856404;
+}
+
+/* --- Report elements --- */
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.report-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.6rem;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+
+.report-link:hover {
+  color: var(--accent);
+}
+
+.report-reason {
+  font-size: 0.88rem;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.report-content {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.report-content blockquote {
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 1rem;
+  background: var(--bg);
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  font-style: italic;
+  color: var(--text);
 }
 
 @media (max-width: 768px) {

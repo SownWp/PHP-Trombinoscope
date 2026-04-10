@@ -71,3 +71,50 @@ if (avatarInput) {
     }
   });
 }
+
+/* --- Infinite scroll --- */
+(function () {
+  var grid = document.getElementById('trombi-grid');
+  if (!grid) return;
+
+  var loader    = document.getElementById('scroll-loader');
+  var page      = parseInt(grid.dataset.page, 10) || 1;
+  var hasMore   = grid.dataset.hasMore === '1';
+  var promo     = grid.dataset.promo || '';
+  var loading   = false;
+  var threshold = 300;
+
+  function loadMore() {
+    if (loading || !hasMore) return;
+    loading = true;
+    page++;
+    loader.style.display = 'flex';
+
+    var url = 'api_users.php?page=' + page;
+    if (promo) url += '&promo=' + encodeURIComponent(promo);
+
+    fetch(url)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.html) {
+          grid.insertAdjacentHTML('beforeend', data.html);
+        }
+        hasMore = data.hasMore;
+      })
+      .catch(function () {
+        hasMore = false;
+      })
+      .finally(function () {
+        loading = false;
+        loader.style.display = 'none';
+      });
+  }
+
+  window.addEventListener('scroll', function () {
+    if (!hasMore || loading) return;
+    var scrollBottom = window.innerHeight + window.scrollY;
+    if (scrollBottom >= document.body.offsetHeight - threshold) {
+      loadMore();
+    }
+  });
+})();

@@ -46,6 +46,37 @@ $statsTotal = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE role !=
 $statsBanned = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE is_banned = 1")->fetchColumn();
 $statsActive = $statsTotal - $statsBanned;
 
+$stmtReports = $pdo->prepare(
+    "SELECT s.id, s.type, s.cible_id, s.raison, s.statut, s.created_at,
+            u.prenom AS reporter_prenom, u.nom AS reporter_nom,
+            CASE
+              WHEN s.type = 'publication' THEN p.contenu
+              WHEN s.type = 'commentaire' THEN c.contenu
+            END AS contenu_signale,
+            CASE
+              WHEN s.type = 'publication' THEN au_p.prenom
+              WHEN s.type = 'commentaire' THEN au_c.prenom
+            END AS auteur_prenom,
+            CASE
+              WHEN s.type = 'publication' THEN au_p.nom
+              WHEN s.type = 'commentaire' THEN au_c.nom
+            END AS auteur_nom
+     FROM signalements s
+     JOIN utilisateurs u ON s.utilisateur_id = u.id
+     LEFT JOIN publications p ON s.type = 'publication' AND s.cible_id = p.id
+     LEFT JOIN utilisateurs au_p ON p.utilisateur_id = au_p.id
+     LEFT JOIN commentaires c ON s.type = 'commentaire' AND s.cible_id = c.id
+     LEFT JOIN utilisateurs au_c ON c.utilisateur_id = au_c.id
+     ORDER BY FIELD(s.statut, 'en_attente', 'rejetee', 'validee'), s.created_at DESC
+     LIMIT 30"
+);
+$stmtReports->execute();
+$reports = $stmtReports->fetchAll(PDO::FETCH_ASSOC);
+$pendingReportsCount = 0;
+foreach ($reports as $r) {
+    if ($r['statut'] === 'en_attente') $pendingReportsCount++;
+}
+
 $stmtRequests = $pdo->prepare(
     "SELECT d.id, d.message, d.created_at, d.statut, u.id AS user_id, u.prenom, u.nom, u.email
      FROM demandes_deban d
@@ -120,6 +151,12 @@ foreach ($debanRequests as $r) {
           <div class="stat-label">Demandes</div>
         </div>
       <?php endif; ?>
+      <?php if ($pendingReportsCount > 0): ?>
+        <div class="stat-card stat-card-warning">
+          <div class="stat-number"><?= $pendingReportsCount ?></div>
+          <div class="stat-label">Signalements</div>
+        </div>
+      <?php endif; ?>
     </div>
 
     <?php if (!empty($debanRequests)): ?>
@@ -157,6 +194,75 @@ foreach ($debanRequests as $r) {
                   <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
                   <input type="hidden" name="decision" value="refusee">
                   <button type="submit" class="btn btn-sm btn-danger">Refuser</button>
+                </form>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (!empty($reports)): ?>
+      <div class="section-title" style="margin-top: 2rem;">Signalements</div>
+      <div class="requests-list">
+        <?php foreach ($reports as $rep): ?>
+          <div class="request-card <?= $rep['statut'] !== 'en_attente' ? 'request-treated' : '' ?>">
+            <div class="request-header">
+              <div class="request-user">
+                <strong>
+                  <?= htmlspecialchars(ucfirst($rep['type'])) ?> signalé<?= $rep['type'] === 'publication' ? 'e' : '' ?>
+                </strong>
+                <span class="request-email">
+                  par <?= htmlspecialchars($rep['reporter_prenom'] . ' ' . $rep['reporter_nom']) ?>
+                  <?php if ($rep['auteur_prenom']): ?>
+                    — auteur : <?= htmlspecialchars($rep['auteur_prenom'] . ' ' . $rep['auteur_nom']) ?>
+                  <?php endif; ?>
+                </span>
+              </div>
+              <div class="request-meta">
+                <?php if ($rep['statut'] === 'en_attente'): ?>
+                  <span class="badge badge-warning">En attente</span>
+                <?php elseif ($rep['statut'] === 'validee'): ?>
+                  <span class="badge badge-banned">Validé</span>
+                <?php else: ?>
+                  <span class="badge badge-active">Rejeté</span>
+                <?php endif; ?>
+                <span class="request-date"><?= date('d/m/Y à H:i', strtotime($rep['created_at'])) ?></span>
+              </div>
+            </div>
+
+            <div class="report-reason"><strong>Raison :</strong> <?= nl2br(htmlspecialchars($rep['raison'])) ?></div>
+
+            <?php if ($rep['contenu_signale']): ?>
+              <div class="report-content">
+                <strong>Contenu :</strong>
+                <blockquote><?= nl2br(htmlspecialchars($rep['contenu_signale'])) ?></blockquote>
+              </div>
+            <?php else: ?>
+              <div class="report-content"><em>Contenu supprimé.</em></div>
+            <?php endif; ?>
+
+            <?php if ($rep['statut'] === 'en_attente'): ?>
+              <div class="request-actions">
+                <form method="POST" action="handle-report.php" class="inline-form">
+                  <?= csrfField() ?>
+                  <input type="hidden" name="report_id" value="<?= $rep['id'] ?>">
+                  <input type="hidden" name="decision" value="validee">
+                  <input type="hidden" name="content_action" value="supprimer">
+                  <button type="submit" class="btn btn-sm btn-danger" data-confirm="Valider et supprimer le contenu ?">Valider &amp; supprimer</button>
+                </form>
+                <form method="POST" action="handle-report.php" class="inline-form">
+                  <?= csrfField() ?>
+                  <input type="hidden" name="report_id" value="<?= $rep['id'] ?>">
+                  <input type="hidden" name="decision" value="validee">
+                  <input type="hidden" name="content_action" value="garder">
+                  <button type="submit" class="btn btn-sm btn-success-outline">Valider (garder le contenu)</button>
+                </form>
+                <form method="POST" action="handle-report.php" class="inline-form">
+                  <?= csrfField() ?>
+                  <input type="hidden" name="report_id" value="<?= $rep['id'] ?>">
+                  <input type="hidden" name="decision" value="rejetee">
+                  <button type="submit" class="btn btn-sm btn-secondary">Rejeter</button>
                 </form>
               </div>
             <?php endif; ?>

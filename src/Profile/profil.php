@@ -187,16 +187,18 @@ if (!empty($publications)) {
             <?= nl2br(htmlspecialchars($pub['contenu'])) ?>
           </div>
 
-          <?php if ($isLoggedIn && (int) $_SESSION['user_id'] === (int) $pub['utilisateur_id']): ?>
-            <div class="post-actions">
+          <div class="post-actions">
+            <?php if ($isLoggedIn && (int) $_SESSION['user_id'] === (int) $pub['utilisateur_id']): ?>
               <a href="../Posts/edit-post.php?id=<?= $pub['id'] ?>" class="btn btn-secondary btn-sm">Modifier</a>
               <form action="../Posts/delete-post.php" method="POST" style="display:inline;">
                 <input type="hidden" name="post_id" value="<?= $pub['id'] ?>">
                 <?= csrfField() ?>
                 <button type="submit" class="btn btn-danger btn-sm" data-confirm="Supprimer cette publication ?">Supprimer</button>
               </form>
-            </div>
-          <?php endif; ?>
+            <?php elseif ($isLoggedIn): ?>
+              <button type="button" class="btn btn-outline btn-sm report-btn" data-type="publication" data-id="<?= $pub['id'] ?>">Signaler</button>
+            <?php endif; ?>
+          </div>
 
           <div class="comment-list">
             <?php foreach (($commentaires[$pub['id']] ?? []) as $com): ?>
@@ -216,6 +218,9 @@ if (!empty($publications)) {
                       <svg class="like-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                       <span class="like-count"><?= $likesCount[$com['id']] ?? 0 ?></span>
                     </button>
+                    <?php if ((int) $_SESSION['user_id'] !== (int) $com['utilisateur_id']): ?>
+                      <button type="button" class="report-link report-btn" data-type="commentaire" data-id="<?= $com['id'] ?>">Signaler</button>
+                    <?php endif; ?>
                   <?php else: ?>
                     <span class="like-btn like-btn-static">
                       <svg class="like-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -240,6 +245,46 @@ if (!empty($publications)) {
 
     </div>
   </div>
+
+  <?php if ($isLoggedIn): ?>
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal-card">
+      <div class="modal-title">Signaler un contenu</div>
+      <p class="modal-text">Indiquez pourquoi ce contenu est inapproprié.</p>
+      <form method="POST" action="../Posts/report.php">
+        <?= csrfField() ?>
+        <input type="hidden" name="type" id="reportType">
+        <input type="hidden" name="cible_id" id="reportCibleId">
+        <input type="hidden" name="redirect" value="../Profile/profil.php?id=<?= $profilId ?>">
+        <div class="form-group">
+          <label for="reportRaison">Raison du signalement</label>
+          <textarea name="raison" id="reportRaison" rows="3" placeholder="Décrivez le problème…" required></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeReportModal()">Annuler</button>
+          <button type="submit" class="btn btn-danger">Envoyer le signalement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.report-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('reportType').value = btn.dataset.type;
+        document.getElementById('reportCibleId').value = btn.dataset.id;
+        document.getElementById('reportRaison').value = '';
+        document.getElementById('reportModal').classList.add('open');
+      });
+    });
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.remove('open');
+    }
+    document.getElementById('reportModal').addEventListener('click', function (e) {
+      if (e.target === this) closeReportModal();
+    });
+  </script>
+  <?php endif; ?>
 
   <footer>
     <div class="container">

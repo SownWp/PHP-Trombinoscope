@@ -81,6 +81,22 @@ CREATE TABLE demandes_deban (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 
+CREATE TABLE signalements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type ENUM('publication', 'commentaire') NOT NULL,
+    cible_id INT NOT NULL,
+    utilisateur_id INT NOT NULL,
+    raison TEXT NOT NULL,
+    statut ENUM('en_attente', 'validee', 'rejetee') NOT NULL DEFAULT 'en_attente',
+    admin_id INT DEFAULT NULL,
+    treated_at DATETIME DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_report (type, cible_id, utilisateur_id),
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_id) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+
 CREATE TABLE tentatives_connexion (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ip VARCHAR(45) NOT NULL,
